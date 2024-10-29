@@ -556,12 +556,15 @@ func RemovePolicy(ctx context.Context, aclDB kv.RwDB, aclType string, addr commo
 	return err
 }
 
-func ListContentAtACL(ctx context.Context, db kv.RwDB) (string, error) {
-
+func ListContentAtACL(ctx context.Context, db kv.RwDB) ([]string, error) {
+	var combinedBuffers []string
 	var buffer bytes.Buffer
+	var bufferConfig bytes.Buffer
+	var bufferBlockList bytes.Buffer
+	var bufferAllowlist bytes.Buffer
 
 	tables := db.AllTables()
-	buffer.WriteString("ListContentAtACL\n")
+	buffer.WriteString(" \n")
 	buffer.WriteString("Tables\nTable - { Flags, AutoDupSortKeysConversion, IsDeprecated, DBI, DupFromLen, DupToLen }\n")
 	for key, config := range tables {
 		buffer.WriteString(fmt.Sprint(key, config, "\n"))
@@ -572,6 +575,7 @@ func ListContentAtACL(ctx context.Context, db kv.RwDB) (string, error) {
 		buffer.WriteString("\nConfig\n")
 		err := tx.ForEach(Config, nil, func(k, v []byte) error {
 			buffer.WriteString(fmt.Sprintf("Key: %s, Value: %s\n", string(k), string(v)))
+			bufferConfig.WriteString(fmt.Sprintf("Key: %s, Value: %s\n", string(k), string(v)))
 			return nil
 		})
 
@@ -593,10 +597,14 @@ func ListContentAtACL(ctx context.Context, db kv.RwDB) (string, error) {
 				"\nBlocklist\n%s",
 				BlockListContent.String(),
 			))
+			bufferBlockList.WriteString(fmt.Sprintf(
+				"\nBlocklist\n%s",
+				BlockListContent.String(),
+			))
 		} else {
 			buffer.WriteString("\nBlocklist is empty")
+			bufferBlockList.WriteString("\nBlocklist is empty")
 		}
-
 		// Allowlist table
 		var AllowlistContent strings.Builder
 		err = tx.ForEach(Allowlist, nil, func(k, v []byte) error {
@@ -615,14 +623,24 @@ func ListContentAtACL(ctx context.Context, db kv.RwDB) (string, error) {
 				"\nAllowlist\n%s",
 				AllowlistContent.String(),
 			))
+			bufferAllowlist.WriteString(fmt.Sprintf(
+				"\nAllowlist\n%s",
+				AllowlistContent.String(),
+			))
 		} else {
 			buffer.WriteString("\nAllowlist is empty")
+			bufferAllowlist.WriteString("\nAllowlist is empty")
 		}
 
 		return err
 	})
 
-	return buffer.String(), err
+	combinedBuffers = append(combinedBuffers, buffer.String())
+	combinedBuffers = append(combinedBuffers, bufferConfig.String())
+	combinedBuffers = append(combinedBuffers, bufferBlockList.String())
+	combinedBuffers = append(combinedBuffers, bufferAllowlist.String())
+
+	return combinedBuffers, err
 }
 
 // SetMode sets the mode of the ACL
