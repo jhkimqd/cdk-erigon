@@ -508,34 +508,30 @@ func TestListContentAtACL(t *testing.T) {
 	require.NoError(t, err)
 
 	var tests = []struct {
-		table         string
 		wantAllowlist string
 		wantBlockList string
 	}{
-		{"tableOne", "\nAllowlist\nKey: 0000000000000000000000001234567890abcdef, Value: {\n\tdeploy: false\n\tsendTx: true\n}\n", "\nBlocklist\nKey: 0000000000000000000000001234567890abcdef, Value: {\n\tsendTx: true\n\tdeploy: false\n}\n"},
+		{"\nAllowlist\nKey: 0000000000000000000000001234567890abcdef, Value: {\n\tdeploy: false\n\tsendTx: true\n}\n", "\nBlocklist\nKey: 0000000000000000000000001234567890abcdef, Value: {\n\tsendTx: true\n\tdeploy: false\n}\n"},
 	}
 	// ListContentAtACL will return []string in the following order:
-	// buffer.String()
-	// bufferConfig.String()
-	// bufferBlockList.String()
-	// bufferAllowlist.String()
+	// [buffer.String(), bufferConfig.String(), bufferBlockList.String(), bufferAllowlist.String()]
 	ans, err := ListContentAtACL(ctx, db)
 	for _, tt := range tests {
 		t.Run("ListContentAtACL", func(t *testing.T) {
 			switch {
 			case err != nil:
 				t.Errorf("ListContentAtACL did not execute successfully: %v", err)
-			case !strings.Contains(tt.wantAllowlist, "\nAllowlist\nKey: 0000000000000000000000001234567890abcdef"):
+			case !strings.Contains(ans[3], "\nAllowlist\nKey: 0000000000000000000000001234567890abcdef"):
 				t.Errorf("got %v, want %v", ans, tt.wantAllowlist)
-			case !strings.Contains(tt.wantAllowlist, "sendTx: true"):
+			case !strings.Contains(ans[3], "sendTx: true"):
 				t.Errorf("got %v, want %v", ans, tt.wantAllowlist)
-			case !strings.Contains(tt.wantAllowlist, "deploy: false"):
+			case !strings.Contains(ans[3], "deploy: false"):
 				t.Errorf("got %v, want %v", ans, tt.wantAllowlist)
-			case !strings.Contains(tt.wantBlockList, "\nBlocklist\nKey: 0000000000000000000000001234567890abcdef"):
+			case !strings.Contains(ans[2], "\nBlocklist\nKey: 0000000000000000000000001234567890abcdef"):
 				t.Errorf("got %v, want %v", ans, tt.wantBlockList)
-			case !strings.Contains(tt.wantBlockList, "sendTx: true"):
+			case !strings.Contains(ans[2], "sendTx: true"):
 				t.Errorf("got %v, want %v", ans, tt.wantBlockList)
-			case !strings.Contains(tt.wantBlockList, "deploy: false"):
+			case !strings.Contains(ans[2], "deploy: false"):
 				t.Errorf("got %v, want %v", ans, tt.wantBlockList)
 			}
 		})
