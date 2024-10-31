@@ -3,17 +3,20 @@ package txpool
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"math/bits"
 	"testing"
 	"time"
 
 	"github.com/holiman/uint256"
 	"github.com/ledgerwatch/erigon-lib/common"
+	"github.com/ledgerwatch/erigon-lib/common/datadir"
 	"github.com/ledgerwatch/erigon-lib/common/length"
+	"github.com/ledgerwatch/erigon-lib/common/u256"
 	"github.com/ledgerwatch/erigon-lib/gointerfaces"
 	"github.com/ledgerwatch/erigon-lib/gointerfaces/remote"
 	"github.com/ledgerwatch/erigon-lib/kv/kvcache"
+	"github.com/ledgerwatch/erigon-lib/kv/memdb"
+	"github.com/ledgerwatch/erigon-lib/kv/temporal/temporaltest"
 	"github.com/ledgerwatch/erigon-lib/txpool/txpoolcfg"
 	"github.com/ledgerwatch/erigon-lib/types"
 	"github.com/ledgerwatch/erigon/eth/ethconfig"
@@ -88,37 +91,26 @@ func EncodeAccountBytesV3(nonce uint64, balance *uint256.Int, hash []byte, incar
 }
 
 func TestNonceFromAddress(t *testing.T) {
-	// assert, require := assert.New(t), require.New(t)
-	// ch := make(chan types.Announcements, 100)
+	assert, require := assert.New(t), require.New(t)
+	ch := make(chan types.Announcements, 100)
 
-	// _, coreDB, _ := temporaltest.NewTestDB(t, datadir.New(t.TempDir()))
-	// db := memdb.NewTestPoolDB(t)
+	_, coreDB, _ := temporaltest.NewTestDB(t, datadir.New(t.TempDir()))
+	db := memdb.NewTestPoolDB(t)
 
 	path := fmt.Sprintf("/tmp/db-test-%v", time.Now().UTC().Format(time.RFC3339Nano))
 
-	// txPoolDB := newTestTxPoolDB(t, path)
-	// aclsDB := newTestACLDB(t, path)
+	txPoolDB := newTestTxPoolDB(t, path)
+	aclsDB := newTestACLDB(t, path)
 
-	// // Check if the dbs are created
-	// require.NotNil(t, txPoolDB)
-	// require.NotNil(t, aclsDB)
-	// cfg := txpoolcfg.DefaultConfig
-	// sendersCache := kvcache.New(kvcache.DefaultCoherentConfig)
-	db, tx, aclDb := initDb(t, path, true)
-	defer db.Close()
-	// defer tx.Rollback()
-	defer aclDb.Close()
+	// Check if the dbs are created
+	require.NotNil(t, txPoolDB)
+	require.NotNil(t, aclsDB)
 
-	newTxs := make(chan types.Announcements, 1024)
-	defer close(newTxs)
-
-	ethCfg := &ethconfig.Defaults
-	ethCfg.Zk.Limbo = true
-
-	pool, err := New(make(chan types.Announcements), db, txpoolcfg.DefaultConfig, ethCfg, kvcache.NewDummy(), *uint256.NewInt(1101), big.NewInt(0), big.NewInt(0), aclDb)
-	// pool, err := New(ch, coreDB, cfg, &ethconfig.Defaults, sendersCache, *u256.N1, nil, nil, aclsDB)
-	assert.NoError(t, err)
-	require.True(t, pool != nil)
+	cfg := txpoolcfg.DefaultConfig
+	sendersCache := kvcache.New(kvcache.DefaultCoherentConfig)
+	pool, err := New(ch, coreDB, cfg, &ethconfig.Defaults, sendersCache, *u256.N1, nil, nil, aclsDB)
+	assert.NoError(err)
+	require.True(pool != nil)
 	ctx := context.Background()
 	var stateVersionID uint64 = 0
 	pendingBaseFee := uint64(200000)
@@ -141,11 +133,11 @@ func TestNonceFromAddress(t *testing.T) {
 		Address: gointerfaces.ConvertAddressToH160(addr),
 		Data:    v,
 	})
-	tx, err = db.BeginRw(ctx)
-	require.NoError(t, err)
+	tx, err := db.BeginRw(ctx)
+	require.NoError(err)
 	defer tx.Rollback()
 	err = pool.OnNewBlock(ctx, change, types.TxSlots{}, types.TxSlots{}, tx)
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	{
 		var txSlots types.TxSlots
@@ -159,9 +151,9 @@ func TestNonceFromAddress(t *testing.T) {
 		txSlots.Append(txSlot1, addr[:], true)
 
 		reasons, err := pool.AddLocalTxs(ctx, txSlots, tx)
-		assert.NoError(t, err)
+		assert.NoError(err)
 		for _, reason := range reasons {
-			assert.Equal(t, Success, reason, reason.String())
+			assert.Equal(Success, reason, reason.String())
 		}
 	}
 
@@ -184,13 +176,13 @@ func TestNonceFromAddress(t *testing.T) {
 		txSlots.Append(txSlot2, addr[:], true)
 		txSlots.Append(txSlot3, addr[:], true)
 		reasons, err := pool.AddLocalTxs(ctx, txSlots, tx)
-		assert.NoError(t, err)
+		assert.NoError(err)
 		for _, reason := range reasons {
-			assert.Equal(t, Success, reason, reason.String())
+			assert.Equal(Success, reason, reason.String())
 		}
 		nonce, ok := pool.NonceFromAddress(addr)
-		assert.True(t, ok)
-		assert.Equal(t, uint64(2063), nonce)
+		assert.True(ok)
+		assert.Equal(uint64(2063), nonce)
 	}
 	// test too expensive tx
 	{
@@ -204,9 +196,9 @@ func TestNonceFromAddress(t *testing.T) {
 		txSlot1.IDHash[0] = 4
 		txSlots.Append(txSlot1, addr[:], true)
 		reasons, err := pool.AddLocalTxs(ctx, txSlots, tx)
-		assert.NoError(t, err)
+		assert.NoError(err)
 		for _, reason := range reasons {
-			assert.Equal(t, InsufficientFunds, reason, reason.String())
+			assert.Equal(InsufficientFunds, reason, reason.String())
 		}
 	}
 
@@ -222,11 +214,11 @@ func TestNonceFromAddress(t *testing.T) {
 		txSlot1.IDHash[0] = 5
 		txSlots.Append(txSlot1, addr[:], true)
 		reasons, err := pool.AddLocalTxs(ctx, txSlots, tx)
-		assert.NoError(t, err)
+		assert.NoError(err)
 		for _, reason := range reasons {
-			assert.Equal(t, NonceTooLow, reason, reason.String())
+			assert.Equal(NonceTooLow, reason, reason.String())
 		}
 	}
 }
 
-// 219 failing because the txn doesn't get saved in the db.
+//219
