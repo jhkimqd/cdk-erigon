@@ -25,20 +25,18 @@ import (
 func TestNonceFromAddress(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	ch := make(chan types.Announcements, 100)
-	// coreDB := memdb.NewTestPoolDB(t)
 	_, coreDB, _ := temporaltest.NewTestDB(t, datadir.New(t.TempDir()))
 	defer coreDB.Close()
 
 	db := memdb.NewTestPoolDB(t)
-
 	path := fmt.Sprintf("/tmp/db-test-%v", time.Now().UTC().Format(time.RFC3339Nano))
-
 	txPoolDB := newTestTxPoolDB(t, path)
 	defer txPoolDB.Close()
 	aclsDB := newTestACLDB(t, path)
 	defer aclsDB.Close()
 
-	// Check if the dbs are created
+	// Check if the dbs are created.
+	require.NotNil(t, db)
 	require.NotNil(t, txPoolDB)
 	require.NotNil(t, aclsDB)
 
@@ -51,18 +49,15 @@ func TestNonceFromAddress(t *testing.T) {
 	ctx := context.Background()
 	var stateVersionID uint64 = 0
 	pendingBaseFee := uint64(200000)
-	// start blocks from 0, set empty hash - then kvcache will also work on this
 	h1 := gointerfaces.ConvertHashToH256([32]byte{})
 
+	// Create address for testing.
 	var addr [20]byte
 	addr[0] = 1
 
-	// Add 1 eth to the user account, as a part of change
+	// Fund addr with 18 Ether for sending transactions.
 	v := make([]byte, types.EncodeSenderLengthForStorage(2, *uint256.NewInt(18 * common.Ether)))
 	types.EncodeSender(2, *uint256.NewInt(18 * common.Ether), v)
-	tx, err := db.BeginRw(ctx)
-	require.NoError(err)
-	defer tx.Rollback()
 
 	change := &remote.StateChangeBatch{
 		StateVersionId:      stateVersionID,
@@ -77,6 +72,9 @@ func TestNonceFromAddress(t *testing.T) {
 		Address: gointerfaces.ConvertAddressToH160(addr),
 		Data:    v,
 	})
+	tx, err := db.BeginRw(ctx)
+	require.NoError(err)
+	defer tx.Rollback()
 	err = pool.OnNewBlock(ctx, change, types.TxSlots{}, types.TxSlots{}, tx)
 	assert.NoError(err)
 
@@ -97,7 +95,7 @@ func TestNonceFromAddress(t *testing.T) {
 			assert.Equal(Success, reason, reason.String())
 		}
 	}
-
+	// Test sending normal transactions with expected nonces.
 	{
 		txSlots := types.TxSlots{}
 		txSlot2 := &types.TxSlot{
@@ -121,11 +119,12 @@ func TestNonceFromAddress(t *testing.T) {
 		for _, reason := range reasons {
 			assert.Equal(Success, reason, reason.String())
 		}
+		// Test NonceFromAddress function to check if the address' nonce is being properly tracked.
 		nonce, ok := pool.NonceFromAddress(addr)
 		assert.True(ok)
 		assert.Equal(uint64(6), nonce)
 	}
-	// test too expensive tx
+	// Test sending transactions without having enough balance for it.
 	{
 		var txSlots types.TxSlots
 		txSlot1 := &types.TxSlot{
@@ -143,7 +142,7 @@ func TestNonceFromAddress(t *testing.T) {
 		}
 	}
 
-	// test too low nonce
+	// Test sending transactions with too low nonce.
 	{
 		var txSlots types.TxSlots
 		txSlot1 := &types.TxSlot{
