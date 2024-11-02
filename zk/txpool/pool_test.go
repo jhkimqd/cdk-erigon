@@ -127,7 +127,8 @@ func TestNonceFromAddress(t *testing.T) {
 		}
 		// Test NonceFromAddress function to check if the address' nonce is being properly tracked.
 		nonce, _ := pool.NonceFromAddress(addr)
-		assert.Equal(uint64(3), nonce)
+		// CDK Erigon will return 0, Upstream Erigon will return latest nonce including txns in the queued pool.
+		assert.Equal(uint64(0), nonce)
 	}
 	// Test sending transactions without having enough balance for it.
 	{

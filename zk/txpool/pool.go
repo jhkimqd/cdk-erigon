@@ -2047,6 +2047,7 @@ func (b *BySenderAndNonce) nonce(senderID uint64) (nonce uint64, ok bool) {
 			// we only want to include transactions that are in the pending pool.  TXs in the queued pool
 			// artificially increase the "pending" call which can cause transactions to just stack up
 			// when libraries use eth_getTransactionCount "pending" for the next tx nonce - a common thing
+			nonce = mt.Tx.Nonce
 			return true
 		}
 		if mt.Tx.SenderID == senderID {
