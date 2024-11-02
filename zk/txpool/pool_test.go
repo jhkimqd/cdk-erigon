@@ -101,6 +101,7 @@ func TestNonceFromAddress(t *testing.T) {
 		assert.NoError(err)
 
 	}
+
 	// Test sending normal transactions with expected nonces.
 	{
 		txSlots := types.TxSlots{}
@@ -125,11 +126,13 @@ func TestNonceFromAddress(t *testing.T) {
 		for _, reason := range reasons {
 			assert.Equal(Success, reason, reason.String())
 		}
+
 		// Test NonceFromAddress function to check if the address' nonce is being properly tracked.
 		nonce, _ := pool.NonceFromAddress(addr)
 		// CDK Erigon will return 0, Upstream Erigon will return latest nonce including txns in the queued pool.
 		assert.Equal(uint64(0), nonce)
 	}
+
 	// Test sending transactions without having enough balance for it.
 	{
 		var txSlots types.TxSlots
