@@ -73,12 +73,14 @@ func TestFetch(t *testing.T) {
 	var wg sync.WaitGroup
 	fetch.SetWaitGroup(&wg)
 	// The corresponding WaitGroup.Done() will be called by the Sentry.
+	// First will be called by (txpool.MockSentry).Messages
+	// Second will be called by (txpool.MockSentry).PeerEvents
 	m.StreamWg.Add(2)
 	fetch.ConnectSentries()
 	m.StreamWg.Wait()
 
 	// Send one transaction id with ETH66 protocol.
-	// The corresponding WaitGroup.Done() will be called by the Sentry.
+	// The corresponding WaitGroup.Done() will be called by the fetch.receiveMessage()
 	wg.Add(1)
 	errs := m.Send(&sentry.InboundMessage{
 		Id:     sentry.MessageId_NEW_POOLED_TRANSACTION_HASHES_66,
