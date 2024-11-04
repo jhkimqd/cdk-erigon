@@ -42,7 +42,6 @@ func TestFetch(t *testing.T) {
 	ch := make(chan types.Announcements, 100)
 	_, coreDB, _ := temporaltest.NewTestDB(t, datadir.New(t.TempDir()))
 	defer coreDB.Close()
-
 	db := memdb.NewTestPoolDB(t)
 	path := fmt.Sprintf("/tmp/db-test-%v", time.Now().UTC().Format(time.RFC3339Nano))
 	txPoolDB := newTestTxPoolDB(t, path)
@@ -67,8 +66,6 @@ func TestFetch(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	remoteKvClient := remote.NewMockKVClient(ctrl)
 	sentryServer := sentry.NewMockSentryServer(ctrl)
-	// pool := NewMockPool(ctrl)
-	// pool.EXPECT().Started().Return(true)
 
 	m := txpool.NewMockSentry(ctx, sentryServer)
 	sentryClient := direct.NewSentryClientDirect(direct.ETH66, m)
@@ -78,6 +75,7 @@ func TestFetch(t *testing.T) {
 	m.StreamWg.Add(2)
 	fetch.ConnectSentries()
 	m.StreamWg.Wait()
+
 	// Send one transaction id
 	wg.Add(1)
 	errs := m.Send(&sentry.InboundMessage{
