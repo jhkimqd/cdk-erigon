@@ -28,7 +28,7 @@ import (
 
 var peerID types.PeerID = gointerfaces.ConvertHashToH512([64]byte{0x12, 0x34, 0x50}) // "12345"
 
-// DecodeHex converts a hex string to a byte array
+// DecodeHex converts a hex string to a byte array.
 func decodeHex(in string) []byte {
 	payload, err := hex.DecodeString(in)
 	if err != nil {
@@ -72,11 +72,13 @@ func TestFetch(t *testing.T) {
 	fetch := NewFetch(ctx, []direct.SentryClient{sentryClient}, pool, remoteKvClient, nil, nil, *u256.N1)
 	var wg sync.WaitGroup
 	fetch.SetWaitGroup(&wg)
+	// The corresponding WaitGroup.Done() will be called by the Sentry.
 	m.StreamWg.Add(2)
 	fetch.ConnectSentries()
 	m.StreamWg.Wait()
 
-	// Send one transaction id
+	// Send one transaction id with ETH66 protocol.
+	// The corresponding WaitGroup.Done() will be called by the Sentry.
 	wg.Add(1)
 	errs := m.Send(&sentry.InboundMessage{
 		Id:     sentry.MessageId_NEW_POOLED_TRANSACTION_HASHES_66,
