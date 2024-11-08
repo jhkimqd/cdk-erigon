@@ -77,6 +77,7 @@ func TestSendTxPropagate(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		sentryServer := sentry.NewMockSentryServer(ctrl)
 		requests := make([]*sentry.SendMessageToRandomPeersRequest, 0)
+
 		sentryServer.EXPECT().
 			SendMessageToRandomPeers(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, r *sentry.SendMessageToRandomPeersRequest) (*sentry.SentPeers, error) {
@@ -111,6 +112,7 @@ func TestSendTxPropagate(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		sentryServer := sentry.NewMockSentryServer(ctrl)
 		requests := make([]*sentry.SendMessageToRandomPeersRequest, 0)
+
 		sentryServer.EXPECT().
 			SendMessageToRandomPeers(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, r *sentry.SendMessageToRandomPeersRequest) (*sentry.SentPeers, error) {
@@ -138,9 +140,9 @@ func TestSendTxPropagate(t *testing.T) {
 	t.Run("sync with new peer", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		sentryServer := sentry.NewMockSentryServer(ctrl)
-
 		times := 3
 		requests := make([]*sentry.SendMessageByIdRequest, 0, times)
+
 		sentryServer.EXPECT().
 			SendMessageById(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, r *sentry.SendMessageByIdRequest) (*sentry.SentPeers, error) {
