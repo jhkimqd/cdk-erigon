@@ -408,7 +408,7 @@ var (
 	L2DataStreamerTimeout = cli.StringFlag{
 		Name:  "zkevm.l2-datastreamer-timeout",
 		Usage: "The time to wait for data to arrive from the stream before reporting an error (0s doesn't check)",
-		Value: "0s",
+		Value: "3s",
 	}
 	L1SyncStartBlock = cli.Uint64Flag{
 		Name:  "zkevm.l1-sync-start-block",
@@ -747,6 +747,11 @@ var (
 		Name:  "zkevm.info-tree-update-interval",
 		Usage: "The interval at which the sequencer checks the L1 for new GER information",
 		Value: 1 * time.Minute,
+	}
+	SealBatchImmediatelyOnOverflow = cli.BoolFlag{
+		Name:  "zkevm.seal-batch-immediately-on-overflow",
+		Usage: "Seal the batch immediately when detecting a counter overflow",
+		Value: false,
 	}
 	ACLPrintHistory = cli.IntFlag{
 		Name:  "acl.print-history",
