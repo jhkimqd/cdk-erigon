@@ -48,24 +48,18 @@ func TestSendTxPropagate(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		sentryServer := sentry.NewMockSentryServer(ctrl)
 		requests := make([]*sentry.SendMessageToRandomPeersRequest, 0)
+
 		sentryServer.EXPECT().
 			SendMessageToRandomPeers(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, r *sentry.SendMessageToRandomPeersRequest) (*sentry.SentPeers, error) {
 				requests = append(requests, r)
 				return nil, nil
-			}).AnyTimes()
+			}).Times(1)
 
-		sentryServer.EXPECT().PeerById(gomock.Any(), gomock.Any()).
-			DoAndReturn(
-				func(_ context.Context, r *sentry.PeerByIdRequest) (*sentry.PeerByIdReply, error) {
-					return &sentry.PeerByIdReply{
-						Peer: &types.PeerInfo{
-							Id:   r.PeerId.String(),
-							Caps: []string{"eth/68"},
-						}}, nil
-				}).AnyTimes()
-
-		sentryServer.EXPECT().SendMessageToAll(gomock.Any(), gomock.Any()).AnyTimes()
+		sentryServer.EXPECT().SendMessageToAll(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, r *sentry.OutboundMessageData) (*sentry.SentPeers, error) {
+				return nil, nil
+			}).Times(1)
 
 		m := txpool.NewMockSentry(ctx, sentryServer)
 		send := NewSend(ctx, []direct.SentryClient{direct.NewSentryClientDirect(direct.ETH68, m)}, nil)
@@ -88,7 +82,7 @@ func TestSendTxPropagate(t *testing.T) {
 			DoAndReturn(func(_ context.Context, r *sentry.SendMessageToRandomPeersRequest) (*sentry.SentPeers, error) {
 				requests = append(requests, r)
 				return nil, nil
-			}).AnyTimes()
+			}).Times(1)
 
 		m := txpool.NewMockSentry(ctx, sentryServer)
 		send := NewSend(ctx, []direct.SentryClient{direct.NewSentryClientDirect(direct.ETH68, m)}, nil)
@@ -98,7 +92,10 @@ func TestSendTxPropagate(t *testing.T) {
 			copy(list[i:i+32], b)
 		}
 
-		sentryServer.EXPECT().SendMessageToAll(gomock.Any(), gomock.Any()).AnyTimes()
+		sentryServer.EXPECT().SendMessageToAll(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, r *sentry.OutboundMessageData) (*sentry.SentPeers, error) {
+				return nil, nil
+			}).Times(1)
 
 		send.BroadcastPooledTxs(testRlps(len(list) / 32))
 		send.AnnouncePooledTxs([]byte{0, 1, 2}, []uint32{10, 12, 14}, list)
@@ -119,9 +116,12 @@ func TestSendTxPropagate(t *testing.T) {
 			DoAndReturn(func(_ context.Context, r *sentry.SendMessageToRandomPeersRequest) (*sentry.SentPeers, error) {
 				requests = append(requests, r)
 				return nil, nil
-			}).AnyTimes()
+			}).Times(1)
 
-		sentryServer.EXPECT().SendMessageToAll(gomock.Any(), gomock.Any()).AnyTimes()
+		sentryServer.EXPECT().SendMessageToAll(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, r *sentry.OutboundMessageData) (*sentry.SentPeers, error) {
+				return nil, nil
+			}).Times(1)
 
 		m := txpool.NewMockSentry(ctx, sentryServer)
 		send := NewSend(ctx, []direct.SentryClient{direct.NewSentryClientDirect(direct.ETH68, m)}, nil)
