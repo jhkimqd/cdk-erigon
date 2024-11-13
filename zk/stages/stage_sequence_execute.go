@@ -429,7 +429,7 @@ func sequencingBatchStep(
 									In this case we make note that we have had a transaction that overflowed and continue attempting to process transactions
 									Once we reach the cap for these attempts we will stop producing blocks and consider the batch done
 							*/
-							if !batchState.hasAnyTransactionsInThisBatch {
+							if !batchState.hasAnyTransactionsInThisBatch && len(batchState.builtBlocks) == 0 {
 								// mark the transaction to be removed from the pool
 								cfg.txPool.MarkForDiscardFromPendingBest(txHash)
 								log.Info(fmt.Sprintf("[%s] single transaction %s cannot fit into batch", logPrefix, txHash))
@@ -440,8 +440,8 @@ func sequencingBatchStep(
 								ocs, _ := batchCounters.CounterStats(l1TreeUpdateIndex != 0)
 								// was not included in this batch because it overflowed: counter x, counter y
 								log.Info(transactionNotAddedText, "Counters context:", ocs, "overflow transactions", batchState.overflowTransactions)
-								if batchState.reachedOverflowTransactionLimit() {
-									log.Info(fmt.Sprintf("[%s] closing batch due to counters", logPrefix), "counters: ", batchState.overflowTransactions)
+								if batchState.reachedOverflowTransactionLimit() || cfg.zk.SealBatchImmediatelyOnOverflow {
+									log.Info(fmt.Sprintf("[%s] closing batch due to counters", logPrefix), "counters: ", batchState.overflowTransactions, "immediate", cfg.zk.SealBatchImmediatelyOnOverflow)
 									runLoopBlocks = false
 									break LOOP_TRANSACTIONS
 								}

@@ -115,7 +115,7 @@ func (t *zeroTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, sco
 		slot := libcommon.Hash(stackData[stackLen-1].Bytes32())
 		t.addAccountToTrace(caller)
 		t.addSLOADToAccount(caller, slot)
-	case stackLen >= 1 && op == vm.SSTORE:
+	case stackLen >= 2 && op == vm.SSTORE:
 		slot := libcommon.Hash(stackData[stackLen-1].Bytes32())
 		t.addAccountToTrace(caller)
 		t.addSSTOREToAccount(caller, slot, stackData[stackLen-2].Clone())
@@ -220,7 +220,7 @@ func (t *zeroTracer) CaptureTxEnd(restGas uint64) {
 			trace.StorageRead = nil
 		}
 
-		if len(trace.StorageWritten) == 0 || !hasLiveAccount {
+		if len(trace.StorageWritten) == 0 || !hasLiveAccount || !t.env.IntraBlockState().IsDirtyJournal(addr) {
 			trace.StorageWritten = nil
 		} else {
 			// A slot write could be reverted if the transaction is reverted. We will need to read the value from the statedb again to get the correct value.
@@ -379,6 +379,7 @@ func (t *zeroTracer) addSLOADToAccount(addr libcommon.Address, key libcommon.Has
 
 func (t *zeroTracer) addSSTOREToAccount(addr libcommon.Address, key libcommon.Hash, value *uint256.Int) {
 	t.tx.Traces[addr].StorageWritten[key] = value
+	t.tx.Traces[addr].StorageReadMap[key] = struct{}{}
 	t.addOpCodeToAccount(addr, vm.SSTORE)
 }
 
